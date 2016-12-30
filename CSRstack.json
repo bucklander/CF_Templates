@@ -12,12 +12,12 @@
     "CSRType": {
       "Description": "Maximum network througput required for CSR instances.",
       "Type": "String",
-      "Default": "2x500Mbps",
+      "Default": "500Mbps",
       "AllowedValues": [
-        "2x500Mbps",
-        "2x1Gbps",
-        "2x2Gbps",
-        "2x4.5Gbps"
+        "500Mbps",
+        "1Gbps",
+        "2Gbps",
+        "4.5Gbps"
       ]
     },
     "LicenseModel": {
@@ -192,19 +192,19 @@
       }
     },
     "CsrInstance": {
-      "2x500Mbps": {
+      "500Mbps": {
         "Type": "c4.large",
         "Bandwidth": "500000"
       },
-      "2x1Gbps": {
+      "1Gbps": {
         "Type": "c4.xlarge",
         "Bandwidth": "1000000"
       },
-      "2x2Gbps": {
+      "2Gbps": {
         "Type": "c4.2xlarge",
         "Bandwidth": "2000000"
       },
-      "2x4.5Gbps": {
+      "4.5Gbps": {
         "Type": "c4.4xlarge",
         "Bandwidth": "4500000"
       }
