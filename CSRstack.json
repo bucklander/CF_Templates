@@ -1,0 +1,828 @@
+{
+  "Description": "Deploy a standalone Cisco CSR w/ EIP into existing VPC's public subnet.",
+  "Parameters": {
+    "VPC": {
+      "Description": "VPC to launch into.",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "PubSubnet": {
+      "Description": "Public Subnet",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "CSRType": {
+      "Description": "Maximum network througput required for CSR instances.",
+      "Type": "String",
+      "Default": "2x500Mbps",
+      "AllowedValues": [
+        "2x500Mbps",
+        "2x1Gbps",
+        "2x2Gbps",
+        "2x4.5Gbps"
+      ]
+    },
+    "LicenseModel": {
+      "Description": "Choose between BYOL (Bring Your Own License) and License Included license models. Remember to first subscribe the the appropriate Marketplace AMI!",
+      "Type": "String",
+      "Default": "LicenseIncluded",
+      "AllowedValues": [
+        "LicenseIncluded",
+        "BYOL"
+      ]
+    },
+    "S3Prefix": {
+      "Description": "For config backups, the S3 prefix to append before S3 key names.",
+      "Type": "String",
+      "Default": "csrconfigs/"
+    },
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances.",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "TerminationProtection": {
+      "Description": "Enable termination protection on the CSR EC2 instances to avoid accidential CSR termination?",
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ]
+    }
+  },
+  "Conditions": {
+    "EnableTerm": {
+      "Fn::Equals": [
+        {
+          "Ref": "TerminationProtection"
+        },
+        "Yes"
+      ]
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Cisco CSR Configuration"
+          },
+          "Parameters": [
+            "CSRType",
+            "KeyName",
+            "LicenseModel",
+            "TerminationProtection"
+          ]
+        },
+        {
+          "Label": {
+            "default": "AWS Service Configuration"
+          },
+          "Parameters": [
+            "S3Prefix"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "VPC",
+            "PubSubnet"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "PubSubnet": {
+          "default": "Public Subnet"
+        },
+        "CSRType": {
+          "default": "CSR Throughput Requirements"
+        },
+        "KeyName": {
+          "default": "SSH Key to access CSR"
+        },
+        "S3Prefix": {
+          "default": "Prefix for S3 Objects"
+        },
+        "LicenseModel": {
+          "default": "License Model"
+        }
+      }
+    }
+  },
+  "Mappings": {
+    "Function": {
+      "Configurator": {
+        "CodeLocation": "solutions-reference/transit-vpc/v3/transit-vpc-push-cisco-config.zip",
+        "CodeRegion": "us-east-1",
+        "Name": "cisco-configurator",
+        "Description": "Transit VPC: This function is invoked when a generic VPN configuration is placed in an S3 bucket - it converts the generic information into Cisco IOS specific commands and pushes the config to transit VPC routers.",
+        "Runtime": "python2.7",
+        "Timeout": "300",
+        "MemorySize": "128"
+      },
+      "Poller": {
+        "CodeLocation": "solutions-reference/transit-vpc/v3/transit-vpc-poller.py",
+        "CodeRegion": "us-east-1",
+        "Name": "vgw-poller",
+        "Description": "Transit VPC: Poller function responsible for identifying specifically tagged VGWs and creating VPN connections to transit VPC.",
+        "Runtime": "python2.7",
+        "Timeout": "120",
+        "MemorySize": "128"
+      },
+      "FindReplace": {
+        "S3BucketID": "%BUCKET_NAME%",
+        "S3PrefixID": "%PREFIX%",
+        "Deliminator": "|"
+      },
+      "Csr": {
+        "UserName": "automate",
+        "PasswordLength": "15",
+        "PrivateKey": "prikey.pem",
+        "PublicKey": "pubkey.pem"
+      }
+    },
+    "CiscoCsrAMI": {
+      "us-east-1": {
+        "BYOL": "ami-d17520c6",
+        "LicenseIncluded": "ami-53742144"
+      },
+      "us-east-2": {
+        "BYOL": "ami-e7104a82",
+        "LicenseIncluded": ""
+      },
+      "us-west-2": {
+        "BYOL": "ami-1ed2087e",
+        "LicenseIncluded": "ami-c1df05a1"
+      },
+      "us-west-1": {
+        "BYOL": "ami-75501815",
+        "LicenseIncluded": "ami-77501817"
+      },
+      "eu-west-1": {
+        "BYOL": "ami-5084c923",
+        "LicenseIncluded": "ami-858ac7f6"
+      },
+      "eu-central-1": {
+        "BYOL": "ami-6602fc09",
+        "LicenseIncluded": "ami-b707f9d8"
+      },
+      "ap-south-1": {
+        "BYOL": "ami-cd7e0aa2",
+        "LicenseIncluded": "ami-f17a0e9e"
+      },
+      "ap-southeast-1": {
+        "BYOL": "ami-f81bbc9b",
+        "LicenseIncluded": "ami-a018bfc3"
+      },
+      "ap-southeast-2": {
+        "BYOL": "ami-e7e7d584",
+        "LicenseIncluded": "ami-a4e7d5c7"
+      },
+      "ap-northeast-1": {
+        "BYOL": "ami-f6ba1f97",
+        "LicenseIncluded": "ami-62862303"
+      },
+      "ap-northeast-2": {
+        "BYOL": "ami-2cc01442",
+        "LicenseIncluded": "ami-12c1157c"
+      },
+      "sa-east-1": {
+        "BYOL": "ami-7a940916",
+        "LicenseIncluded": "ami-83910cef"
+      }
+    },
+    "CsrInstance": {
+      "2x500Mbps": {
+        "Type": "c4.large",
+        "Bandwidth": "500000"
+      },
+      "2x1Gbps": {
+        "Type": "c4.xlarge",
+        "Bandwidth": "1000000"
+      },
+      "2x2Gbps": {
+        "Type": "c4.2xlarge",
+        "Bandwidth": "2000000"
+      },
+      "2x4.5Gbps": {
+        "Type": "c4.4xlarge",
+        "Bandwidth": "4500000"
+      }
+    }
+  },
+  "Resources": {
+    "KMSKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "CISCO CSR CMK for S3 SSE-KMS",
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Id": "CSR-1",
+          "Statement": [
+            {
+              "Sid": "Enable IAM User Permissions",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:iam::",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":root"
+                      ]
+                    ]
+                  }
+                ]
+              },
+              "Action": [
+                "kms:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "Allow use of the key",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:iam::",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":root"
+                      ]
+                    ]
+                  },
+                  {
+                    "Fn::GetAtt": [
+                      "SolutionHelperRole",
+                      "Arn"
+                    ]
+                  }
+                ]
+              },
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "CSRConfigS3Bucket": {
+      "Type": "AWS::S3::Bucket"
+    },
+    "CSRConfigBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "CSRConfigS3Bucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Sid": "DenyUnEncryptedObjectUploads",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "CSRConfigS3Bucket"
+                    },
+                    "/",
+                    {
+                      "Ref": "S3Prefix"
+                    },
+                    "*"
+                  ]
+                ]
+              },
+              "Condition": {
+                "StringNotEquals": {
+                  "s3:x-amz-server-side-encryption": "aws:kms"
+                }
+              }
+            },
+            {
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:PutObjectAcl"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "CSRConfigS3Bucket"
+                    },
+                    "/",
+                    {
+                      "Ref": "S3Prefix"
+                    },
+                    "*"
+                  ]
+                ]
+              },
+              "Principal": {
+                "AWS": [
+                  {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:iam::",
+                        ":root"
+                      ]
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CSRSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "CSR Security Group Rules",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "FromPort": "0",
+            "ToPort": "65535",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "SSHtoCSR": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "IpProtocol": "tcp",
+        "FromPort": "22",
+        "ToPort": "22",
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "CSRSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "CSRENI": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PubSubnet"
+        },
+        "Description": "CSR Public ENI",
+        "GroupSet": [
+          {
+            "Ref": "CSRSecurityGroup"
+          }
+        ],
+        "SourceDestCheck": "false"
+      }
+    },
+    "CSREIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "VPC",
+        "InstanceId": {
+          "Ref": "CSR"
+        }
+      }
+    },
+    "CSR": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "Comment1": "Launch the Cisco CSR"
+      },
+      "Properties": {
+        "InstanceType": {
+          "Fn::FindInMap": [
+            "CsrInstance",
+            {
+              "Ref": "CSRType"
+            },
+            "Type"
+          ]
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "DisableApiTermination": {
+          "Fn::If": [
+            "EnableTerm",
+            true,
+            false
+          ]
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "CiscoCsrAMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            {
+              "Ref": "LicenseModel"
+            }
+          ]
+        },
+        "SubnetId": {
+          "Ref": "PubSubnet"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "CSRSecurityGroup"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "CSR"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "ios-config-1=\"username ",
+                {
+                  "Fn::FindInMap": [
+                    "Function",
+                    "Csr",
+                    "UserName"
+                  ]
+                },
+                " priv 15 pass ",
+                {
+                  "Fn::GetAtt": [
+                    "CreateRandomPassword",
+                    "Password"
+                  ]
+                },
+                "\"\n",
+                "ios-config-2=\"service password-encryption\"\n",
+                "ios-config-3=\"crypto isakmp policy 200\"\n",
+                "ios-config-4=\"encryption aes 128\"\n",
+                "ios-config-5=\"authentication pre-share\"\n",
+                "ios-config-6=\"group 2\"\n",
+                "ios-config-7=\"lifetime 28800\"\n",
+                "ios-config-8=\"hash sha\"\n",
+                "ios-config-9=\"crypto ipsec transform-set ipsec-prop-vpn-aws esp-aes 128 esp-sha-hmac\"\n",
+                "ios-config-10=\"mode tunnel\"\n",
+                "ios-config-11=\"crypto ipsec df-bit clear\"\n",
+                "ios-config-12=\"crypto isakmp keepalive 10 10 on-demand\"\n",
+                "ios-config-13=\"crypto ipsec security-association replay window-size 1024\"\n",
+                "ios-config-14=\"crypto ipsec fragmentation before-encryption\"\n",
+                "ios-config-15=\"crypto ipsec profile ipsec-vpn-aws\"\n",
+                "ios-config-16=\"set pfs group2\"\n",
+                "ios-config-17=\"set security-association lifetime seconds 3600\"\n",
+                "ios-config-18=\"set transform-set ipsec-prop-vpn-aws\"\n",
+                "ios-config-19=\"ip ssh pubkey-chain\"\n",
+                "ios-config-20=\"username ",
+                {
+                  "Fn::FindInMap": [
+                    "Function",
+                    "Csr",
+                    "UserName"
+                  ]
+                },
+                "\"\n",
+                "ios-config-21=\"key-hash ssh-rsa ",
+                {
+                  "Fn::GetAtt": [
+                    "CreateRsaKey",
+                    "Fingerprint"
+                  ]
+                },
+                "\"\n",
+                "ios-config-22=\"ip ssh server algorithm authentication publickey\"\n",
+                "ios-config-23=\"ip ssh maxstartups 1\"\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "CreateRandomPassword": {
+      "Type": "Custom::LoadLambda",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "SolutionHelper",
+            "Arn"
+          ]
+        },
+        "Region": {
+          "Ref": "AWS::Region"
+        },
+        "CreateRandomPassword": {
+          "Fn::FindInMap": [
+            "Function",
+            "Csr",
+            "PasswordLength"
+          ]
+        },
+        "RandomPasswordSpecialCharacters": "False"
+      }
+    },
+    "CreateRsaKey": {
+      "Type": "Custom::LoadLambda",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "SolutionHelper",
+            "Arn"
+          ]
+        },
+        "Region": {
+          "Ref": "AWS::Region"
+        },
+        "CreateSshKey": {
+          "Fn::Join": [
+            "",
+            [
+              "{ 'Bucket' : '",
+              {
+                "Ref": "CSRConfigS3Bucket"
+              },
+              "', ",
+              "'SSEKMSKeyId' : 'arn:aws:kms:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":key/",
+              {
+                "Ref": "KMSKey"
+              },
+              "', ",
+              "'PrivateKey' : '",
+              {
+                "Ref": "S3Prefix"
+              },
+              {
+                "Fn::FindInMap": [
+                  "Function",
+                  "Csr",
+                  "PrivateKey"
+                ]
+              },
+              "', ",
+              "'PublicKey' : '",
+              {
+                "Ref": "S3Prefix"
+              },
+              {
+                "Fn::FindInMap": [
+                  "Function",
+                  "Csr",
+                  "PublicKey"
+                ]
+              },
+              "' ",
+              "}"
+            ]
+          ]
+        }
+      }
+    },
+    "SolutionHelperRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "SolutionHelperRolePolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "SolutionHelperRole"
+          }
+        ],
+        "PolicyName": "Solution_Helper_Permissions",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:logs:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":log-group:/aws/lambda/*"
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutBucketNotification"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "CSRConfigS3Bucket"
+                    }
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "lambda:*",
+                "events:*",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "CSRConfigS3Bucket"
+                    },
+                    "/",
+                    {
+                      "Ref": "S3Prefix"
+                    },
+                    "*"
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject"
+              ],
+              "Resource": "arn:aws:s3:::solutions-reference/*"
+            }
+          ]
+        }
+      }
+    },
+    "SolutionHelper": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": "SolutionHelperRolePolicy",
+      "Properties": {
+        "Handler": "solution-helper.lambda_handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "SolutionHelperRole",
+            "Arn"
+          ]
+        },
+        "Description": "CloudFormation custom resource function invoked during CloudFormation create, update and delete stack operations.",
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              "",
+              [
+                "solutions-",
+                {
+                  "Ref": "AWS::Region"
+                }
+              ]
+            ]
+          },
+          "S3Key": "library/solution-helper/v3/solution-helper.zip"
+        },
+        "Runtime": "python2.7",
+        "Timeout": "60"
+      }
+    },
+    "CSRRecoveryAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Trigger a recovery when CSR instance status check fails for 15 consecutive minutes.",
+        "Namespace": "AWS/EC2",
+        "MetricName": "StatusCheckFailed_System",
+        "Statistic": "Minimum",
+        "Period": "60",
+        "EvaluationPeriods": "15",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Threshold": "0",
+        "AlarmActions": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:automate:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":ec2:recover"
+              ]
+            ]
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "InstanceId",
+            "Value": {
+              "Ref": "CSR"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "URL": {
+      "Description": "URL to the Gateway portal",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Fn::GetAtt": [
+                "CSRENI",
+                "PrimaryPrivateIpAddress"
+              ]
+            }
+          ]
+        ]
+      }
+    }
+  }
+}
