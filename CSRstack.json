@@ -343,17 +343,12 @@
                 ]
               },
               "Principal": {
-                "AWS": [
-                  {
-                    "Fn::Join": [
-                      "",
-                      [
-                        "arn:aws:iam::",
-                        ":root"
-                      ]
-                    ]
-                  }
-                ]
+                "AWS": {
+                  "Fn::GetAtt": [
+                      "root",
+                      "Arn"
+                  ]
+                }
               }
             }
           ]
@@ -383,20 +378,6 @@
             "CidrIp": "0.0.0.0/0"
           }
         ]
-      }
-    },
-    "SSHtoCSR": {
-      "Type": "AWS::EC2::SecurityGroupEgress",
-      "Properties": {
-        "IpProtocol": "tcp",
-        "FromPort": "22",
-        "ToPort": "22",
-        "DestinationSecurityGroupId": {
-          "Fn::GetAtt": [
-            "CSRSecurityGroup",
-            "GroupId"
-          ]
-        }
       }
     },
     "CSRENI": {
@@ -467,6 +448,7 @@
             "Ref": "CSRSecurityGroup"
           }
         ],
+        "SourceDestCheck": "false",
         "Tags": [
           {
             "Key": "Name",
@@ -808,12 +790,12 @@
   },
   "Outputs": {
     "URL": {
-      "Description": "URL to the Gateway portal",
+      "Description": "IP Address for Management",
       "Value": {
         "Fn::Join": [
           "",
           [
-            "https://",
+            "ssh://",
             {
               "Fn::GetAtt": [
                 "CSRENI",
