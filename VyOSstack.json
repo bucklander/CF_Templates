@@ -20,6 +20,16 @@
         "4.5Gbps"
       ]
     },
+    "TenType": {
+      "Description": "Preferred EC2 tenancy type (default, dedicated instance or full host).",
+      "Type": "String",
+      "Default": "default",
+      "AllowedValues": [
+        "default",
+        "dedicated",
+        "host"
+      ]
+    },
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances.",
       "Type": "AWS::EC2::KeyPair::KeyName"
@@ -55,6 +65,7 @@
             "Type",
             "KeyName",
             "LicenseModel",
+            "TenType",
             "TerminationProtection"
           ]
         },
@@ -75,8 +86,11 @@
         "Type": {
           "default": "Throughput Requirements"
         },
+        "TenType": {
+          "default": "EC2 Tenancy Type"
+        },
         "KeyName": {
-          "default": "SSH Key to access instance"
+          "default": "Existing SSH Key to access instance"
         }
       }
     }
@@ -203,56 +217,6 @@
         }
       }
     },
-    "VyOS": {
-      "Type": "AWS::EC2::Instance",
-      "Metadata": {
-        "Comment1": "Launch VyOS"
-      },
-      "Properties": {
-        "InstanceType": {
-          "Fn::FindInMap": [
-            "InstanceSize",
-            {
-              "Ref": "Type"
-            },
-            "Type"
-          ]
-        },
-        "KeyName": {
-          "Ref": "KeyName"
-        },
-        "DisableApiTermination": {
-          "Fn::If": [
-            "EnableTerm",
-            true,
-            false
-          ]
-        },
-        "ImageId": {
-          "Fn::FindInMap": [
-            "RegionalAMI",
-            {
-              "Ref": "AWS::Region"
-            },
-              "VyAMI"
-          ]
-        },
-        "SubnetId": {
-          "Ref": "PubSubnet"
-        },
-        "SecurityGroupIds": [
-          {
-            "Ref": "SecurityGroup"
-          }
-        ],
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "VyOS"
-          }
-        ]
-      }
-    },
     "RecoveryAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Properties": {
@@ -284,6 +248,95 @@
             "Value": {
               "Ref": "VyOS"
             }
+          }
+        ]
+      }
+    },
+    "VyOS": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "Comment1": "Launch VyOS"
+      },
+      "Properties": {
+        "InstanceType": {
+          "Fn::FindInMap": [
+            "InstanceSize",
+            {
+              "Ref": "Type"
+            },
+            "Type"
+          ]
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "Tenancy": {
+          "Ref": "TenType"
+        },
+        "DisableApiTermination": {
+          "Fn::If": [
+            "EnableTerm",
+            true,
+            false
+          ]
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionalAMI",
+            {
+              "Ref": "AWS::Region"
+            },
+              "VyAMI"
+          ]
+        },
+        "SubnetId": {
+          "Ref": "PubSubnet"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "SecurityGroup"
+          }
+        ],
+        "SourceDestCheck": "false",
+        "IamInstanceProfile": {
+          "Ref": "VyOSInstanceProfile"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "VyOS"
+          }
+        ]
+      }
+    },
+    "VyOSRole": {
+      "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": [
+                    "ec2.amazonaws.com"
+                  ]
+                },
+                "Action": [
+                  "sts:AssumeRole"
+                ]
+              }
+            ]
+          },
+          "Path": "/"
+        }
+    },
+    "VyOSInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+              "Ref": "VyOSRole"
           }
         ]
       }
