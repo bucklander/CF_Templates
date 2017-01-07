@@ -1,0 +1,311 @@
+{
+  "Description": "Deploy a standalone VyOS HVM 1.1.7 instance w/ EIP into existing an VPC's public subnet.",
+  "Parameters": {
+    "VPC": {
+      "Description": "VPC to launch into.",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "PubSubnet": {
+      "Description": "Public Subnet",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "Type": {
+      "Description": "Maximum network througput required for instance.",
+      "Type": "String",
+      "Default": "500Mbps",
+      "AllowedValues": [
+        "500Mbps",
+        "1Gbps",
+        "2Gbps",
+        "4.5Gbps"
+      ]
+    },
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances.",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "TerminationProtection": {
+      "Description": "Enable termination protection on the EC2 instances to avoid accidential termination?",
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ]
+    }
+  },
+  "Conditions": {
+    "EnableTerm": {
+      "Fn::Equals": [
+        {
+          "Ref": "TerminationProtection"
+        },
+        "Yes"
+      ]
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Instance Configuration"
+          },
+          "Parameters": [
+            "Type",
+            "KeyName",
+            "LicenseModel",
+            "TerminationProtection"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "VPC",
+            "PubSubnet"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "PubSubnet": {
+          "default": "Public Subnet"
+        },
+        "Type": {
+          "default": "Throughput Requirements"
+        },
+        "KeyName": {
+          "default": "SSH Key to access instance"
+        }
+      }
+    }
+  },
+  "Mappings": {
+    "RegionalAMI": {
+      "us-east-1": {
+        "VyAMI": "ami-b8e1a5af"
+      },
+      "us-east-2": {
+        "VyAMI": "ami-cc3f65a9"
+      },
+      "us-west-1": {
+        "VyAMI": "ami-8597d9e5"
+      },
+      "us-west-2": {
+        "VyAMI": "ami-ac23fccc"
+      },
+      "eu-west-1": {
+        "VyAMI": "ami-b1f944c2"
+      },
+      "eu-central-1": {
+        "VyAMI": "ami-49cf3b26"
+      },
+      "ap-south-1": {
+        "VyAMI": "ami-7034401f"
+      },
+      "ap-southeast-1": {
+        "VyAMI": "ami-3df6525e"
+      },
+      "ap-southeast-2": {
+        "VyAMI": "ami-1b8bbb78"
+      },
+      "ap-northeast-1": {
+        "VyAMI": "ami-5812e939"
+      },
+      "ap-northeast-2": {
+        "VyAMI": "ami-76e52f18"
+      },
+      "sa-east-1": {
+        "VyAMI": "ami-1a37a476"
+      }
+    },
+    "InstanceSize": {
+      "500Mbps": {
+        "Type": "c4.large",
+        "Bandwidth": "500000"
+      },
+      "1Gbps": {
+        "Type": "c4.xlarge",
+        "Bandwidth": "1000000"
+      },
+      "2Gbps": {
+        "Type": "c4.2xlarge",
+        "Bandwidth": "2000000"
+      },
+      "4.5Gbps": {
+        "Type": "c4.4xlarge",
+        "Bandwidth": "4500000"
+      }
+    }
+  },
+  "Resources": {
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Default Security Group Rules",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "FromPort": "0",
+            "ToPort": "65535",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "SGRuleSSH": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "IpProtocol": "tcp",
+        "FromPort": "22",
+        "ToPort": "22",
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "SecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "ENI": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PubSubnet"
+        },
+        "Description": "Public ENI",
+        "GroupSet": [
+          {
+            "Ref": "SecurityGroup"
+          }
+        ],
+        "SourceDestCheck": "false"
+      }
+    },
+    "EIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "VPC",
+        "InstanceId": {
+          "Ref": "VyOS"
+        }
+      }
+    },
+    "VyOS": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "Comment1": "Launch VyOS"
+      },
+      "Properties": {
+        "InstanceType": {
+          "Fn::FindInMap": [
+            "InstanceSize",
+            {
+              "Ref": "Type"
+            },
+            "Type"
+          ]
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "DisableApiTermination": {
+          "Fn::If": [
+            "EnableTerm",
+            true,
+            false
+          ]
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionalAMI",
+            {
+              "Ref": "AWS::Region"
+            },
+              "VyAMI"
+          ]
+        },
+        "SubnetId": {
+          "Ref": "PubSubnet"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "SecurityGroup"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "VyOS"
+          }
+        ]
+      }
+    },
+    "RecoveryAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Trigger a recovery when the instance status check fails for 15 consecutive minutes.",
+        "Namespace": "AWS/EC2",
+        "MetricName": "StatusCheckFailed_System",
+        "Statistic": "Minimum",
+        "Period": "60",
+        "EvaluationPeriods": "15",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Threshold": "0",
+        "AlarmActions": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:automate:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":ec2:recover"
+              ]
+            ]
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "InstanceId",
+            "Value": {
+              "Ref": "VyOS"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "URL": {
+      "Description": "URL to the Gateway portal",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Fn::GetAtt": [
+                "ENI",
+                "PrimaryPrivateIpAddress"
+              ]
+            }
+          ]
+        ]
+      }
+    }
+  }
+}
