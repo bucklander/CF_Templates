@@ -1,5 +1,5 @@
 {
-  "Description": "Deploy a standalone Cisco ASAv 9.6(2)1 w/ EIP into existing VPC's public subnet. Creates automation account and saves keys to restricted bucket for separate Lambda functions.",
+  "Description": "Deploys Cisco ASAv 9.6(2) w/ EIP and autorecovery into existing VPC",
   "Parameters": {
     "VPC": {
       "Description": "VPC to launch into.",
