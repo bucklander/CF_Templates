@@ -1,0 +1,449 @@
+{
+  "Description": "Deploy a standalone Cisco ASAv 9.6(2)1 w/ EIP into existing VPC's public subnet. Creates automation account and saves keys to restricted bucket for separate Lambda functions.",
+  "Parameters": {
+    "VPC": {
+      "Description": "VPC to launch into.",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "PriSubnet": {
+      "Description": "Private Subnet",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "PubSubnet": {
+      "Description": "Public Subnet",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "ASAvType": {
+      "Description": "Performance required for ASAv instances.",
+      "Type": "String",
+      "Default": "ASAv10-1Gbps-c3.large",
+      "AllowedValues": [
+        "ASAv10-1Gbps-c3.large",
+        "ASAv10-1Gbps-c4.large",
+        "ASAv30-2Gbps-c3.xlarge",
+        "ASAv30-2Gbps-c4.xlarge"
+      ]
+    },
+    "TenType": {
+      "Description": "Preferred EC2 tenancy type (default, dedicated instance or full host).",
+      "Type": "String",
+      "Default": "default",
+      "AllowedValues": [
+        "default",
+        "dedicated",
+        "host"
+      ]
+    },
+    "LicenseModel": {
+      "Description": "Choose between BYOL (Bring Your Own License) and License Included license models. Remember to first subscribe the the appropriate Marketplace AMI!",
+      "Type": "String",
+      "Default": "LicenseIncluded",
+      "AllowedValues": [
+        "LicenseIncluded",
+        "BYOL"
+      ]
+    },
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances.",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "TerminationProtection": {
+      "Description": "Enable termination protection on the ASAv EC2 instances to avoid accidential ASAv termination?",
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ]
+    }
+  },
+  "Conditions": {
+    "EnableTerm": {
+      "Fn::Equals": [
+        {
+          "Ref": "TerminationProtection"
+        },
+        "Yes"
+      ]
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Cisco ASAv Configuration"
+          },
+          "Parameters": [
+            "ASAvType",
+            "TenType",
+            "KeyName",
+            "LicenseModel",
+            "TerminationProtection"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "VPC",
+            "PriSubnet",
+            "PubSubnet"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "PubSubnet": {
+          "default": "Public Subnet (for data int)"
+        },
+        "PriSubnet": {
+          "default": "Private Subnet (for mgmt int)"
+        },
+        "ASAvType": {
+          "default": "ASAv Performance Requirements"
+        },
+        "TenType": {
+          "default": "EC2 Tenancy Type"
+        },
+        "KeyName": {
+          "default": "SSH Key to access ASAv"
+        },
+        "S3Prefix": {
+          "default": "Prefix for S3 Objects"
+        },
+        "LicenseModel": {
+          "default": "License Model"
+        }
+      }
+    }
+  },
+  "Mappings": {
+    "CiscoAsavAMI": {
+      "us-east-1": {
+        "BYOL": "ami-b5e0ada2",
+        "LicenseIncluded": "ami-e0e0adf7"
+      },
+      "us-east-2": {
+        "BYOL": "ami-96efb4f3",
+        "LicenseIncluded": "ami-31f2a954"
+      },
+      "us-west-2": {
+        "BYOL": "ami-8e60b9ee",
+        "LicenseIncluded": "ami-d464bdb4"
+      },
+      "us-west-1": {
+        "BYOL": "ami-2d79304d",
+        "LicenseIncluded": "ami-72662f12"
+      },
+      "eu-west-1": {
+        "BYOL": "ami-9d2363ee",
+        "LicenseIncluded": "ami-c02565b3"
+      },
+      "eu-west-2": {
+        "BYOL": "ami-03ede767",
+        "LicenseIncluded": "ami-5de3e939"
+      },
+      "eu-central-1": {
+        "BYOL": "ami-7f3dc210",
+        "LicenseIncluded": "ami-32c03f5d"
+      },
+      "ap-south-1": {
+        "BYOL": "ami-0120546e",
+        "LicenseIncluded": "ami-b12d59de"
+      },
+      "ap-southeast-1": {
+        "BYOL": "ami-111eba72",
+        "LicenseIncluded": "ami-7f1eba1c"
+      },
+      "ap-southeast-2": {
+        "BYOL": "ami-1ccaf97f",
+        "LicenseIncluded": "ami-1dcaf97e"
+      },
+      "ap-northeast-1": {
+        "BYOL": "ami-d539e0b4",
+        "LicenseIncluded": "ami-fa02db9b"
+      },
+      "ap-northeast-2": {
+        "BYOL": "ami-368e5a58",
+        "LicenseIncluded": "ami-ff8f5b91"
+      },
+      "ca-central-1": {
+        "BYOL": "ami-38c4765c",
+        "LicenseIncluded": "ami-74cf7d10"
+      },
+      "sa-east-1": {
+        "BYOL": "ami-184fdd74",
+        "LicenseIncluded": "ami-8c48dae0"
+      }
+    },
+    "ASAvInstance": {
+      "ASAv10-1Gbps-c3.large": {
+        "Type": "c3.large",
+      },
+      "ASAv10-1Gbps-c4.large": {
+        "Type": "c4.large",
+      },
+      "ASAv30-2Gbps-c3.xlarge": {
+        "Type": "c3.xlarge",
+      },
+      "ASAv30-2Gbps-c4.xlarge": {
+        "Type": "c4.xlarge",
+      }
+    }
+  },
+  "Resources": {
+    "ASAvPriSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "ASAv Private Management Security Group Rules",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "FromPort": "0",
+            "ToPort": "65535",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "ASAvPubSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "ASAv Public Security Group Rules",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "FromPort": "0",
+            "ToPort": "65535",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "ASAvPriENI": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PriSubnet"
+        },
+        "Description": "ASAv Private/Mgmt ENI",
+        "GroupSet": [
+          {
+            "Ref": "ASAvPriSecurityGroup"
+          }
+        ],
+        "SourceDestCheck": "false"
+      }
+    },
+    "ASAvPubENI": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PubSubnet"
+        },
+        "Description": "ASAv Public ENI",
+        "GroupSet": [
+          {
+            "Ref": "ASAvPubSecurityGroup"
+          }
+        ],
+        "SourceDestCheck": "false"
+      }
+    },
+    "ASAvEIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "VPC",
+        "InstanceId": {
+          "Ref": "ASAv"
+        }
+      }
+    },
+    "ASAvAssociateIP" : {
+      "Type" : "AWS::EC2::EIPAssociation",
+      "Properties" : {
+        "AllocationId" : { "Fn::GetAtt" : [ "ASAvEIP", "AllocationId" ]},
+        "NetworkInterfaceId" : { "Ref" : "ASAvPubENI" }
+      }
+    },
+    "ASAv": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "Comment1": "Launch the Cisco ASAv"
+      },
+      "Properties": {
+        "InstanceType": {
+          "Fn::FindInMap": [
+            "ASAvInstance",
+            {
+              "Ref": "ASAvType"
+            },
+            "Type"
+          ]
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "Tenancy": {
+          "Ref": "TenType"
+        },
+        "DisableApiTermination": {
+          "Fn::If": [
+            "EnableTerm",
+            true,
+            false
+          ]
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "CiscoAsavAMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            {
+              "Ref": "LicenseModel"
+            }
+          ]
+        },
+        "NetworkInterfaces" : [ 
+          {
+            "NetworkInterfaceId" : {
+              "Ref" : "ASAvPriENI"
+            },
+            "DeviceIndex" : "0"
+          },
+          {
+            "NetworkInterfaceId" : {
+              "Ref" : "ASAvPubENI"
+            },
+            "DeviceIndex" : "1"
+          }
+        ],
+        "IamInstanceProfile": {
+          "Ref": "ASAvInstanceProfile"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ASAv"
+          }
+        ]
+      }
+    },
+    "ASAvRecoveryAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Trigger a recovery when ASAv instance status check fails for 15 consecutive minutes.",
+        "Namespace": "AWS/EC2",
+        "MetricName": "StatusCheckFailed_System",
+        "Statistic": "Minimum",
+        "Period": "60",
+        "EvaluationPeriods": "15",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Threshold": "0",
+        "AlarmActions": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:automate:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":ec2:recover"
+              ]
+            ]
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "InstanceId",
+            "Value": {
+              "Ref": "ASAv"
+            }
+          }
+        ]
+      }
+    },
+    "ASAvRole": {
+      "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": [
+                    "ec2.amazonaws.com"
+                  ]
+                },
+                "Action": [
+                  "sts:AssumeRole"
+                ]
+              }
+            ]
+          },
+          "Path": "/"
+        }
+    },
+    "ASAvInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+              "Ref": "ASAvRole"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "PubIP": {
+      "Description": "Publicly Allocated Elastic IP Address",
+      "Value": {
+        "Ref": "ASAvEIP"
+      }
+    },
+    "URL": {
+      "Description": "IP Address for Management",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "ssh://admin@",
+            {
+              "Fn::GetAtt": [
+                "ASAvPriENI",
+                "PrimaryPrivateIpAddress"
+              ]
+            }
+          ]
+        ]
+      }
+    }
+  }
+}
