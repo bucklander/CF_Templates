@@ -276,10 +276,7 @@
     "ASAvEIP": {
       "Type": "AWS::EC2::EIP",
       "Properties": {
-        "Domain": "VPC",
-        "InstanceId": {
-          "Ref": "ASAv"
-        }
+        "Domain": "VPC"
       }
     },
     "ASAvAssociateIP" : {
