@@ -333,15 +333,15 @@
     "CSRSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "CSR Security Group Rules",
+        "GroupDescription": "CSR Security Group. Implicitly permit all ingress for VPN termination will be both dataplane and VPN traffic",
         "VpcId": {
           "Ref": "VPC"
         },
         "SecurityGroupIngress": [
           {
-            "IpProtocol": "tcp",
-            "FromPort": "22",
-            "ToPort": "22",
+            "IpProtocol": "-1",
+            "FromPort": "0",
+            "ToPort": "65535",
             "CidrIp": "0.0.0.0/0"
           }
         ],
