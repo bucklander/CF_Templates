@@ -14,6 +14,7 @@
       "Type": "String",
       "Default": "500Mbps",
       "AllowedValues": [
+        "250Mbps",
         "500Mbps",
         "1Gbps",
         "2Gbps",
@@ -154,6 +155,10 @@
       "us-west-2"       : { "BYOL" :  "ami-e4d43d9c", "LicenseIncluded" : "ami-29d33a51" }
     },
     "CsrInstance": {
+      "250Mbps": {
+        "Type": "m3.medium",
+        "Bandwidth": "250000"
+      },
       "500Mbps": {
         "Type": "c4.large",
         "Bandwidth": "500000"
