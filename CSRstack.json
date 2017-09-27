@@ -138,20 +138,20 @@
       }
     },
     "CiscoCsrAMI" : {
-      "us-east-1"      : { "BYOL" : "ami-23f79835", "LicenseIncluded" : "ami-d5fa95c3" },
-      "us-east-2"      : { "BYOL" : "ami-541e3931", "LicenseIncluded" : "ami-051c3b60" },
-      "us-west-2"      : { "BYOL" : "ami-119b0071", "LicenseIncluded" : "ami-33e57e53" },
-      "us-west-1"      : { "BYOL" : "ami-dc9bbcbc", "LicenseIncluded" : "ami-9b9abdfb" },
-      "eu-west-1"      : { "BYOL" : "ami-48f2ff2e", "LicenseIncluded" : "ami-d5f1fcb3" },
-      "eu-west-2"      : { "BYOL" : "ami-35a5b151", "LicenseIncluded" : "ami-5fb9ad3b" },
-      "eu-central-1"   : { "BYOL" : "ami-7b27f814", "LicenseIncluded" : "ami-a72bf4c8" },
-      "ca-central-1"   : { "BYOL" : "ami-ab8d31cf", "LicenseIncluded" : "ami-9f8c30fb" },
-      "ap-south-1"     : { "BYOL" : "ami-25d1a34a", "LicenseIncluded" : "ami-8ded9fe2" },
-      "ap-southeast-1" : { "BYOL" : "ami-bf269cdc", "LicenseIncluded" : "ami-99209afa" },
-      "ap-southeast-2" : { "BYOL" : "ami-62cec501", "LicenseIncluded" : "ami-d6cfc4b5" },
-      "ap-northeast-1" : { "BYOL" : "ami-827041e5", "LicenseIncluded" : "ami-b57544d2" },
-      "ap-northeast-2" : { "BYOL" : "ami-60a77a0e", "LicenseIncluded" : "ami-8ca479e2" },
-      "sa-east-1"      : { "BYOL" : "ami-43b6da2f", "LicenseIncluded" : "ami-eab6da86" }
+      "ap-south-1"      : { "BYOL" :  "ami-88bbfee7", "LicenseIncluded" : "ami-79bffa16" },
+      "eu-west-2"       : { "BYOL" :  "ami-a30414c7", "LicenseIncluded" : "ami-7a04141e" },
+      "eu-west-1"       : { "BYOL" :  "ami-40946d39", "LicenseIncluded" : "ami-3e906947" },
+      "ap-northeast-2"  : { "BYOL" :  "ami-2914cc47", "LicenseIncluded" : "ami-2b14cc45" },
+      "ap-northeast-1"  : { "BYOL" :  "ami-53a75835", "LicenseIncluded" : "ami-3da6595b" },
+      "sa-east-1"       : { "BYOL" :  "ami-eb9ded87", "LicenseIncluded" : "ami-7e80f012" },
+      "ca-central-1"    : { "BYOL" :  "ami-6269d706", "LicenseIncluded" : "ami-6369d707" },
+      "ap-southeast-1"  : { "BYOL" :  "ami-d5c7a6b6", "LicenseIncluded" : "ami-4fc9a82c" },
+      "ap-southeast-2"  : { "BYOL" :  "ami-e96d778a", "LicenseIncluded" : "ami-3c62785f" },
+      "eu-central-1"    : { "BYOL" :  "ami-74309b1b", "LicenseIncluded" : "ami-77309b18" },
+      "us-east-1"       : { "BYOL" :  "ami-bcbfb9c7", "LicenseIncluded" : "ami-46b1b73d" },
+      "us-east-2"       : { "BYOL" :  "ami-b61437d3", "LicenseIncluded" : "ami-8f1536ea" },
+      "us-west-1"       : { "BYOL" :  "ami-99e5d0f9", "LicenseIncluded" : "ami-c5facfa5" },
+      "us-west-2"       : { "BYOL" :  "ami-e4d43d9c", "LicenseIncluded" : "ami-29d33a51" }
     },
     "CsrInstance": {
       "500Mbps": {
