@@ -98,40 +98,40 @@
   "Mappings": {
     "RegionalAMI": {
       "us-east-1": {
-        "VyAMI": "ami-b8e1a5af"
+        "VyAMI": "ami-80b683fb"
       },
       "us-east-2": {
-        "VyAMI": "ami-cc3f65a9"
+        "VyAMI": "ami-5dba9a38"
       },
       "us-west-1": {
-        "VyAMI": "ami-8597d9e5"
+        "VyAMI": "ami-e583a885"
       },
       "us-west-2": {
-        "VyAMI": "ami-ac23fccc"
+        "VyAMI": "ami-8dd734f5"
       },
       "eu-west-1": {
-        "VyAMI": "ami-b1f944c2"
+        "VyAMI": "ami-2909f950"
       },
       "eu-central-1": {
-        "VyAMI": "ami-49cf3b26"
+        "VyAMI": "ami-63a70e0c"
       },
       "ap-south-1": {
-        "VyAMI": "ami-7034401f"
+        "VyAMI": "ami-74552f1b"
       },
       "ap-southeast-1": {
-        "VyAMI": "ami-3df6525e"
+        "VyAMI": "ami-981f84fb"
       },
       "ap-southeast-2": {
-        "VyAMI": "ami-1b8bbb78"
+        "VyAMI": "ami-99627afa"
       },
       "ap-northeast-1": {
-        "VyAMI": "ami-5812e939"
+        "VyAMI": "ami-918470f7"
       },
       "ap-northeast-2": {
-        "VyAMI": "ami-76e52f18"
+        "VyAMI": "ami-d675acb8"
       },
       "sa-east-1": {
-        "VyAMI": "ami-1a37a476"
+        "VyAMI": "ami-8d2e5fe1"
       }
     },
     "InstanceSize": {
